@@ -87,8 +87,7 @@ Describe $parentConfiguration.checkDisplayName -ForEach $discovery {
             -Because "Cluster should be running the latest Kong release"
     }
         catch {
-            throw "Cluster should be running the latest Kong release. Expected $latestVersion but found $currentVersion."
-             }
+            throw "Cluster should be running the latest Kong release. Expected $latestVersionObject but found $currentVersion."
         }
     }
 }
