@@ -91,4 +91,6 @@ Describe $parentConfiguration.checkDisplayName -ForEach $discovery {
         }
     }
 }
+}
+
 
