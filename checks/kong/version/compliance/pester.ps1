@@ -30,6 +30,10 @@ BeforeDiscovery {
 
 Describe $parentConfiguration.checkDisplayName -ForEach $discovery {
 
+    BeforeAll {
+        $versionThreshold = $_.versionThreshold
+    }
+
     Context "Target: <_.namespace>/<_.resourceRegion>/<_.resourceName>" -ForEach $targets {
         BeforeAll {
             # Update kubeconfig for EKS cluster
@@ -59,38 +63,42 @@ Describe $parentConfiguration.checkDisplayName -ForEach $discovery {
 
     $currentVersion = [NuGet.Versioning.NuGetVersion]::Parse($kong_version_number)
 
-    try {
+    $latestRelease = Invoke-RestMethod `
+                -Uri 'https://api.github.com/repos/Kong/kong/releases/latest' `
+                -Headers @{
+                    Accept = 'application/vnd.github+json'
+        }
 
-        $releases = Invoke-RestMethod `
-            -Uri 'https://api.github.com/repos/Kong/kong/releases?per_page=100' `
-            -Headers @{
-                Accept = 'application/vnd.github+json'
+        $latestVersion = $latestRelease.tag_name -replace '^v', ''
+        $latestVersionObject = [NuGet.Versioning.NuGetVersion]::Parse($latestVersion)
+
+        Write-Host "Current Kong Version: $currentVersion"
+        Write-Host "Latest Kong Version: $latestVersionObject"
+        Write-Host "Version Threshold: $versionThreshold"
+
+        $versionDifference = $latestVersionObject.Patch - $currentVersion.Patch
+
+        $inUpdateRange = $false
+
+        if (
+                $currentVersion.Major -eq $latestVersionObject.Major -and
+                $currentVersion.Minor -eq $latestVersionObject.Minor
+        ) {
+
+            if (
+                    $versionDifference -ge 0 -and
+                    $versionDifference -lt $versionThreshold
+                ) {
+                    $inUpdateRange = $true
+                }
             }
 
-        $latestVersionObject = $releases |
-            Where-Object { -not $_.prerelease } |
-            ForEach-Object {
-                [NuGet.Versioning.NuGetVersion]::Parse(
-                    ($_.tag_name -replace '^v', '')
-                )
-            } |
-            Sort-Object -Descending |
-            Select-Object -First 1
+            Write-Host "Patch Versions Behind: $versionDifference"
 
-        if (-not $latestVersionObject) {
-            throw "Unable to determine latest Kong version."
-        }
-
-        Write-Host "Latest Kong version: $latestVersionObject"
-
-        $currentVersion | Should -Be $latestVersionObject `
-            -Because "Cluster should be running the latest Kong release"
-    }
-        catch {
-            throw "Cluster should be running the latest Kong release. Expected $latestVersionObject but found $currentVersion."
+            $inUpdateRange | Should -Be $true `
+                -Because "Kong version $currentVersion is outside the supported threshold from latest version $latestVersionObject"
         }
     }
-}
 }
 
 
