@@ -81,24 +81,27 @@ Describe $parentConfiguration.checkDisplayName -ForEach $discovery {
         Write-Host "Latest Kong Version: $latestVersionObject"
         Write-Host "Version Threshold: $versionThreshold"
 
-        $versionDifference = $latestVersionObject.Patch - $currentVersion.Patch
+        $majorVersionsBehind = $latestVersionObject.Major - $currentVersion.Major
+        $minorVersionsBehind = $latestVersionObject.Minor - $currentVersion.Minor
+        $patchVersionsBehind = $latestVersionObject.Patch - $currentVersion.Patch
 
         $inUpdateRange = $false
 
         if (
-                $currentVersion.Major -eq $latestVersionObject.Major -and
-                $currentVersion.Minor -eq $latestVersionObject.Minor
+            $majorVersionsBehind -eq 0 -and
+            $minorVersionsBehind -eq 0
         ) {
-
             if (
-                    $versionDifference -ge 0 -and
-                    $versionDifference -lt $versionThreshold
-                ) {
-                    $inUpdateRange = $true
-                }
+                $patchVersionsBehind -ge 0 -and
+                $patchVersionsBehind -lt $versionThreshold
+            ) {
+                $inUpdateRange = $true
             }
+        }
 
-            Write-Host "Patch Versions Behind: $versionDifference"
+Write-Host "Major Versions Behind: $majorVersionsBehind"
+Write-Host "Minor Versions Behind: $minorVersionsBehind"
+Write-Host "Patch Versions Behind: $patchVersionsBehind"
 
             $inUpdateRange | Should -Be $true `
                 -Because "Kong version $currentVersion is outside the supported threshold from latest version $latestVersionObject"
