@@ -63,13 +63,18 @@ Describe $parentConfiguration.checkDisplayName -ForEach $discovery {
 
     $currentVersion = [NuGet.Versioning.NuGetVersion]::Parse($kong_version_number)
 
-    $latestRelease = Invoke-RestMethod `
-                -Uri 'https://api.github.com/repos/Kong/kong/releases/latest' `
-                -Headers @{
+    try {
+        $latestRelease = Invoke-RestMethod `
+            -Uri 'https://api.github.com/repos/Kong/kong/releases/latest' `
+            -Headers @{
                     Accept = 'application/vnd.github+json'
-        }
+            }
+        $latestVersion = $latestRelease.tag_name -replace '^v',''
+    }
+    catch {
+        throw "Failed to retrieve the latest Kong release: $_"
+    }
 
-        $latestVersion = $latestRelease.tag_name -replace '^v', ''
         $latestVersionObject = [NuGet.Versioning.NuGetVersion]::Parse($latestVersion)
 
         Write-Host "Current Kong Version: $currentVersion"
