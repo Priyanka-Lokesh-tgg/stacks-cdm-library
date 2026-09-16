@@ -50,7 +50,7 @@ Describe $parentConfiguration.checkDisplayName -ForEach $discovery {
     $kong_pod = kubectl get pods -n $namespace --no-headers -o custom-columns=":metadata.name" |
         Select-Object -First 1
 
-    $kong_version = & kubectl exec -it $kong_pod -n $namespace -c proxy -- kong version
+    $kong_version = & kubectl exec $kong_pod -n $namespace -c proxy -- kong version
 
     if ($kong_version -match '\d+(\.\d+)+') {
         $kong_version_number = $Matches[0]
